@@ -1,24 +1,32 @@
 <template>
-  <v-treeview
-    open-all
-    selectable
-    dense
-    v-model="selected"
-    :items="categories"
-    item-children="children"
-    item-key="id"
-    item-text="name">
-  </v-treeview>
+<v-container>
+  <v-row>
+    <v-col class="lg-6">
+      <v-treeview
+        open-all
+        selectable
+        dense
+        v-model="selected"
+        :items="categories"
+        item-children="children"
+        item-key="id"
+        item-text="name">
+      </v-treeview>
+    </v-col>
+    <v-col class="lg-6">
+    </v-col>
+  </v-row>
+</v-container>
 </template>
 
 <script lang="ts">
 import { Component, Watch, Emit, Prop, Vue } from "vue-property-decorator";
 import { Category } from "../domain/models/category";
-import { VTreeview } from "vuetify/lib";
+import { VContainer, VRow, VCol, VTreeview } from "vuetify/lib";
 
 @Component ({
   components: {
-    VTreeview
+    VTreeview, VContainer, VRow, VCol
   }
 })
 export default class FlashcardSelector extends Vue {

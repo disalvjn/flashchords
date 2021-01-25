@@ -1,17 +1,24 @@
 <template>
+<v-app>
+  <v-main>
   <v-tabs>
+    <v-tab> Let's Go </v-tab>
+    <v-tab-item>
+      <options-editor></options-editor>
+    </v-tab-item>
     <v-tab> Flashcards </v-tab>
     <v-tab-item>
       <flashcardSelector :categories="categories" v-model="selectedFlashcardIds"></flashcardSelector>
     </v-tab-item>
-    <v-tab> Options </v-tab>
-    <v-tab-item><div>options</div></v-tab-item>
   </v-tabs>
+  </v-main>
+</v-app>
 </template>
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import HelloWorld from "./components/HelloWorld.vue";
 import FlashcardSelector from "./components/FlashcardSelector.vue";
+import OptionsEditor from "./components/OptionsEditor.vue";
 import { Piano } from '@tonejs/piano';
 import { VTabs, VApp, VMain, VTabItem, VTab } from "vuetify/lib";
 
@@ -21,8 +28,8 @@ import { reifyCategories , Category } from './domain/models/category';
 
 @Component ({
   components: {
-    FlashcardSelector,
-    // VApp, VMain,
+    FlashcardSelector, OptionsEditor,
+    VApp, VMain,
     VTabs, VTab, VTabItem
   }
 })
