@@ -1,9 +1,11 @@
 import { ChordFlashcardEntity } from "../entities/chord-flashcard-entity";
 
-export { ChordFlashcard, chordEntityToModel, Flashcard }
+export { ChordFlashcard, chordEntityToModel, Flashcard, FlashcardId }
+
+type FlashcardId = string;
 
 interface Flashcard {
-    readonly id: string;
+    readonly id: FlashcardId;
     readonly category: string[];
     readonly notes: string[]; 
     readonly offsets: number[];

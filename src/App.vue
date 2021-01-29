@@ -25,6 +25,7 @@ import { VTabs, VApp, VMain, VTabItem, VTab } from "vuetify/lib";
 import { chordEntities } from './flashcards/chords/chord-entities';
 import { Flashcard, chordEntityToModel } from './domain/models/flashcard';
 import { reifyCategories , Category } from './domain/models/category';
+import { ICardDrawer, CardDrawer } from './domain/cardDrawer';
 
 @Component ({
   components: {
@@ -38,6 +39,9 @@ export default class App extends Vue {
   private chords: Flashcard[] = chordEntities.map(chordEntityToModel);
   private categories: Category[] = reifyCategories(this.chords);
   private selectedFlashcardIds: string[] = [];
+
+  // todo: thread default options into, add watch for flashcards.
+  // private cardDrawer: ICardDrawer = new CardDrawer([], )
 }
 
 </script>

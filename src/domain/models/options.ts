@@ -1,4 +1,4 @@
-export { noteDropdownOptions, numberedNoteDropdownOptions, Options, defaultOptions }
+export { noteDropdownOptions, numberedNoteDropdownOptions, Options, defaultOptions, Priorities }
 
 const noteDropdownOptions = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
 const numberedNoteDropdownOptions = [2, 3, 4, 5, 6].flatMap(num => noteDropdownOptions.map(letter => letter + num.toString()));

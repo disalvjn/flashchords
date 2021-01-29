@@ -29,10 +29,10 @@
     </v-row>
     <v-row>
         <v-col class="md-2">
-            <div>percentNew</div>
+            <v-text-field v-model.number="options.priorities.percentNew" label="Percent New"></v-text-field>
         </v-col>
         <v-col class="md-2">
-            <div>byPercentiles</div>
+            <v-text-field v-model="byPercentilesString" label="Percentiles"></v-text-field>
         </v-col>
         <v-col class="md-8">
         </v-col>
@@ -56,16 +56,12 @@ export default class OptionsEditor extends Vue {
     private readonly numberedNoteDropdownOptions: string[] = [ ... numberedNoteDropdownOptions ];
     private readonly noteDropdownOptions: string[] = [ ... noteDropdownOptions ];
     private readonly options: Options = { ... defaultOptions, priorities: { ... defaultOptions.priorities } };
+
+    private readonly byPercentilesString: string = "50 30 20";
+
+    @Watch('byPercentilesString')
+    byPercentilesChanged(newValue: string) {
+        this.options.priorities.byPercentiles = newValue.split(" ").map(x => parseInt(x));
+    }
 }
-    // drone: true,
-    // referenceNote: 'A3',
-    // tonic: 'A',
-    // lowestRoot: 'F2',
-    // tonicizeAndDeduplicated: false,
-    // arpeggiateChords: false,
-    // cardChunkSize: 1,
-    // priorities: {
-    //     percentNew: 40,
-    //     byPercentiles: [50, 30, 20]
-    // }
 </script>
