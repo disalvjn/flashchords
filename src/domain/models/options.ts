@@ -1,17 +1,13 @@
-export { noteDropdownOptions, numberedNoteDropdownOptions, Options, defaultOptions, Priorities }
+import { Note, PitchClass } from "../notes";
+export { Options, defaultOptions, Priorities }
 
-const noteDropdownOptions = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
-const numberedNoteDropdownOptions = [2, 3, 4, 5, 6].flatMap(num => noteDropdownOptions.map(letter => letter + num.toString()));
-
-type NumberedNote = string;
-type NoteClass = string;
 
 interface Options {
 
     drone: boolean;
-    referenceNote: NumberedNote;
-    tonic: NoteClass;
-    lowestRoot: NumberedNote;
+    referenceNote: Note;
+    tonic: Note;
+    lowestRoot: Note;
     tonicizeAndDeduplicate: boolean;
 
     arpeggiateChords: boolean;
@@ -34,9 +30,9 @@ interface Priorities {
 
 const defaultOptions: Options = {
     drone: true,
-    referenceNote: 'A3',
-    tonic: 'A',
-    lowestRoot: 'F2',
+    referenceNote: {kind: "scientific", class: "A", octave: 3},
+    tonic: {kind: "scientific", class: "A", octave: 3},
+    lowestRoot: {kind: "scientific", class: "F#", octave: 2},
     tonicizeAndDeduplicate: false,
     arpeggiateChords: false,
     cardChunkSize: 1,

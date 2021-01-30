@@ -1,12 +1,13 @@
 import { FlashcardId } from "./models/flashcard";
 import { Priorities } from "./models/options";
 
-export { ICardDrawer, CardDrawer }
+export { CardDrawer, PrioritiesCardDrawer }
 
-interface ICardDrawer {
+interface CardDrawer {
     drawCard(): FlashcardId;
     recordAttempt(id: FlashcardId, success: boolean): void;
     resetFlashcards(flashcards: FlashcardId[]): void;
+    resetPriorities(priorities: Priorities): void;
 }
 
 interface AttemptHistory {
@@ -18,7 +19,7 @@ interface AttemptHistory {
 
 type CardState = {kind: "new", index: number} | {kind: "attempted", index: number};
 
-class CardDrawer implements ICardDrawer {
+class PrioritiesCardDrawer implements CardDrawer {
     private _priorities: Priorities;
 
     public _attempts: AttemptHistory[];
@@ -34,6 +35,10 @@ class CardDrawer implements ICardDrawer {
 
         this._flashcardToIndex = new Map<string, CardState>();
         this._newCards.forEach((n, i) => this._flashcardToIndex.set(n, {kind: "new", index: i}));
+    }
+
+    public resetPriorities(priorities: Priorities) {
+        this._priorities = priorities;
     }
 
     public drawCard(): string {
@@ -58,11 +63,11 @@ class CardDrawer implements ICardDrawer {
     }
 
     public recordAttempt(id: string, success: boolean): void {
-        let currentPlace = this._flashcardToIndex.get(id);
+        const currentPlace = this._flashcardToIndex.get(id);
         console.log(currentPlace);
 
         if (currentPlace?.kind == "attempted") {
-            let card = this._attempts[currentPlace.index];
+            const card = this._attempts[currentPlace.index];
             card.totalTries++;
             card.successful += success ? 1 : 0;
             card.failed += success ? 0 : 1;
@@ -82,17 +87,17 @@ class CardDrawer implements ICardDrawer {
     }
 
     public resetFlashcards(flashcards: FlashcardId[]) {
-        let next = new Set(flashcards);
-        let current = new Set<FlashcardId>();
+        const next = new Set(flashcards);
+        const current = new Set<FlashcardId>();
         this._newCards.forEach(n => current.add(n));
         this._attempts.forEach(a => current.add(a.flashcardId));
 
-        let add = [ ... next].filter(n => ! current.has(n));
+        const add = [ ... next].filter(n => ! current.has(n));
 
         this._newCards = this._newCards.filter(n => next.has(n));
         this._attempts = this._attempts.filter(a => next.has(a.flashcardId));
 
-        this._newCards = this._newCards.concat([ ... next]);
+        this._newCards = this._newCards.concat([ ... add]);
 
         this._flashcardToIndex = new Map<FlashcardId, CardState>();
         this._newCards.forEach((n, i) => this._flashcardToIndex.set(n, {kind: "new", index: i}));
@@ -102,15 +107,15 @@ class CardDrawer implements ICardDrawer {
 
 //  like insertion sort
 function maintainSort(attempts: AttemptHistory[], index: number, locations: Map<FlashcardId, CardState>) {
-    let percentHit = (a: AttemptHistory) => (a.successful / a.totalTries);
-    let lessThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) < percentHit(b);
-    let greaterThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) > percentHit(b);
+    const percentHit = (a: AttemptHistory) => (a.successful / a.totalTries);
+    const lessThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) < percentHit(b);
+    const greaterThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) > percentHit(b);
 
     function swap(list: AttemptHistory[], i: number, j: number) {
         locations.get(list[i].flashcardId)!.index = j;
         locations.get(list[j].flashcardId)!.index = i;
 
-        let tmp = list[i];
+        const tmp = list[i];
         list[i] = list[j];
         list[j] = tmp;
     }
@@ -134,9 +139,9 @@ function maintainSort(attempts: AttemptHistory[], index: number, locations: Map<
 }
 
 
-function drawFromEquallySizedGroupsBasedOnPercentages<T>(percentages: IntegerPercentage[], list: T[]) : T {
-    let partitions = percentages.length;
-    let indexGroups = divideEquallyIntoInclusiveIndices(list, partitions);
+function drawFromEquallySizedGroupsBasedOnPercentages<T>(percentages: IntegerPercentage[], list: T[]): T {
+    const partitions = percentages.length;
+    const indexGroups = divideEquallyIntoInclusiveIndices(list, partitions);
     return pickByPercentages(percentages.map((percent, i) => [
         percent, 
         () => list[randomNumberBetweenInclusive(indexGroups[i][0], indexGroups[i][1])]
@@ -144,7 +149,7 @@ function drawFromEquallySizedGroupsBasedOnPercentages<T>(percentages: IntegerPer
 }
 
 function intoCumulativePercentages(priorities: number[]): number[] {
-    let result : number[] = [];
+    const result: number[] = [];
     let soFar = 0;
     priorities.forEach(p => {
         result.push((soFar + p) / 100);
@@ -154,14 +159,14 @@ function intoCumulativePercentages(priorities: number[]): number[] {
 }
 
 type IntegerPercentage = number;
-function pickByPercentages<T>(probabilitiesAndActions: [IntegerPercentage, () => T][]) : T {
-    let cumulative = intoCumulativePercentages(probabilitiesAndActions.map(t => t[0]));
+function pickByPercentages<T>(probabilitiesAndActions: [IntegerPercentage, () => T][]): T {
+    const cumulative = intoCumulativePercentages(probabilitiesAndActions.map(t => t[0]));
     if (cumulative[cumulative.length - 1] != 1) {
         console.log("Probabilities don't add up to 1");
         console.log(probabilitiesAndActions);
         throw new Error("Probabilities don't add up to 1.");
     }
-    let r = Math.random();
+    const r = Math.random();
     let i = 0;
     while (r > cumulative[i]) { 
         i ++;
@@ -175,17 +180,17 @@ function randomNumberBetweenInclusive(low: number, high: number) {
 }
 
 function divideEquallyIntoInclusiveIndices<T>(list: T[], partitions: number): [number, number][] {
-    let roughSizePerGroupFrac = list.length / partitions;
-    let dividesCleanly = roughSizePerGroupFrac % 1 == 0;
-    let roughSizePerGroup = Math.ceil(roughSizePerGroupFrac);
+    const roughSizePerGroupFrac = list.length / partitions;
+    const dividesCleanly = roughSizePerGroupFrac % 1 == 0;
+    const roughSizePerGroup = Math.ceil(roughSizePerGroupFrac);
 
-    let result : [number, number][] = [];
+    const result: [number, number][] = [];
 
     let low = 0;
     let high = roughSizePerGroup - 1;
 
     for (let i = 0; i < partitions; i++) {
-        let realHigh = Math.min(high, list.length - 1);
+        const realHigh = Math.min(high, list.length - 1);
         if (low <= realHigh) {
             result.push([low, realHigh]);
         }

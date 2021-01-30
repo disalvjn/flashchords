@@ -2,7 +2,6 @@ import Vue from "vue";
 import App from "./App.vue";
 import store from "./store";
 import Vuetify from "vuetify/lib";
-// import VTreeView from "vuetify/lib";
 
 import 'vuetify/dist/vuetify.min.css';
 

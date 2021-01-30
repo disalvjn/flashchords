@@ -18,7 +18,8 @@ module.exports = {
     "@typescript-eslint/member-delimiter-style": "off",
     "@typescript-eslint/no-use-before-define": "off",
     "@typescript-eslint/prefer-const": "off",
-    "@typescript-eslint/no-empty-function": "off"
+    "@typescript-eslint/no-empty-function": "off",
+    "prettier/prettier": "off"
   },
   overrides: [
     {
