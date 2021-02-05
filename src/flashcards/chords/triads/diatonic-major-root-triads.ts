@@ -1,7 +1,7 @@
 import { ChordFlashcardEntity } from "@/domain/entities/chord-flashcard-entity"
 export { diatonicMajorRootTriads }
 
-let diatonicMajorRootTriads: ChordFlashcardEntity[] = 
+const diatonicMajorRootTriads: ChordFlashcardEntity[] = 
 [
     {
         function: "I",
