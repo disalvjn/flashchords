@@ -5,22 +5,22 @@
     <v-tab> Let's go! </v-tab>
     <v-tab-item>
       <v-container>
-        <v-row v-if="!pianoLoaded">
-          <v-btn @click="loadPiano"><h1>Load Piano</h1></v-btn>
-        </v-row>
         <v-row v-if="this.practiceState.giveUp">
           <v-col><h2>{{ currentCardDescription }}</h2></v-col>
         </v-row>
+        <v-row v-if="this.selectedFlashcardIds.length == 0">
+          <v-col class="md-12"><h2>No Flashcards Selected</h2></v-col>
+        </v-row>
+        <v-row v-else-if="!pianoLoaded">
+          <v-btn @click="loadPiano"><h1>Load Piano</h1></v-btn>
+        </v-row>
         <!-- Button navigation for testing -->
-        <v-row v-if="this.selectedFlashcardIds.length > 0">
+        <v-row v-else>
           <v-col class="md-2"><v-btn @click="drawCard">Draw Card</v-btn></v-col>
           <v-col class="md-2"><v-btn @click="giveUp">Give Up</v-btn></v-col>
           <v-col class="md-2"><v-btn @click="playCard">Play Card</v-btn></v-col>
           <v-col class="md-2"><v-btn @click="recordResult(true)">Succeed</v-btn></v-col>
           <v-col class="md-2"><v-btn @click="recordResult(false)">Fail</v-btn></v-col>
-        </v-row>
-        <v-row v-else>
-          <v-col class="md-12"><h2>No Flashcards Selected</h2></v-col>
         </v-row>
       </v-container>
     </v-tab-item>
@@ -50,7 +50,9 @@ import { reifyCategories , Category } from './domain/models/category';
 import { Options, defaultOptions } from './domain/models/options';
 import { PrioritiesCardDrawer, CardDrawer } from './domain/cardDrawer';
 import { SoundPlayer, PianoPlayer } from './domain/soundPlayer';
-import { Note } from "./domain/notes";
+import { Note, NoteToMidi } from "./domain/notes";
+import { MidiBatcher } from "./domain/midiBatcher";
+import webmidi, { WebMidi } from "webmidi";
 
 interface PracticeState {
   currentCardId: FlashcardId;
@@ -74,6 +76,12 @@ export default class App extends Vue {
   private selectedFlashcardIds: FlashcardId[] = [];
   private cardDrawer: CardDrawer = new PrioritiesCardDrawer(this.selectedFlashcardIds, this.options.priorities);
   private player: SoundPlayer | undefined = undefined;
+  private midiBatcher: MidiBatcher = new MidiBatcher({
+    giveUp: NoteToMidi({kind: "scientific", class: "Ab", octave: 7}),
+    replay: NoteToMidi({kind: "scientific", class: "F#", octave: 7}),
+    nextCard: NoteToMidi({kind: "scientific", class: "Bb", octave: 7})
+    }, 
+    _ => console.log("got midi event, not sure what to do with it yet."));
 
   private pianoLoaded = false;
 
@@ -95,15 +103,65 @@ export default class App extends Vue {
     this.player = new PianoPlayer();
     await this.player.load();
     this.pianoLoaded = true;
+
+    webmidi.enable(ex => {
+      if (ex != undefined) {
+        console.log("Error trying to setup midi listener: " + ex.name);
+      } else {
+        console.log("Successfully set up midi listner.")
+      }
+
+      console.log(webmidi.inputs);
+      console.log(webmidi.outputs);
+
+      if (webmidi.inputs.length == 0) {
+        console.log("No midi input device detected.");
+      }
+
+      const input = webmidi.inputs[0];
+      input.addListener("noteon", "all", e => {
+        this.midiBatcher.accept(e.note.number);
+      });
+    }, true);
+
+    this.midiBatcher.setEmit(event => {
+      if (event.kind == "giveUp") {
+        this.giveUp();
+      } else if (event.kind == "replay") {
+        this.playCard();
+      } else if (event.kind == "nextCard") {
+        this.recordResult(false);
+        this.drawCard();
+        this.playCard();
+      } else if (event.kind == "rightAnswer") {
+        this.recordResult(event.onFirstGuess);
+        this.drawCard();
+        this.playCard();
+      }
+    });
+
+    this.drawCard();
+    this.playCard();
   }
 
   drawCard() {
-    this.practiceState = {currentCardId: this.cardDrawer.drawCard(), wrongGuesses: 0, giveUp: false};
+    try {
+      this.practiceState = {currentCardId: this.cardDrawer.drawCard(), wrongGuesses: 0, giveUp: false};
+      const currentCard = this.currentCard!;
+      const chord: Note[] = currentCard.notes.map(s => ({kind: "solfege", solfege: s, tonic: this.options.tonic}));
+      this.midiBatcher.resetTarget([chord]);
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   recordResult(success: boolean) {
-    this.cardDrawer.recordAttempt(this.practiceState.currentCardId, success);
-    this.drawCard();
+    try {
+      this.cardDrawer.recordAttempt(this.practiceState.currentCardId, success);
+      this.drawCard();
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   playCard() {

@@ -21,6 +21,7 @@ type CardState = {kind: "new", index: number} | {kind: "attempted", index: numbe
 
 class PrioritiesCardDrawer implements CardDrawer {
     private _priorities: Priorities;
+    private _lastCard: FlashcardId = "";
 
     public _attempts: AttemptHistory[];
     public _newCards: FlashcardId[];
@@ -29,6 +30,7 @@ class PrioritiesCardDrawer implements CardDrawer {
 
     public constructor(flashcards: FlashcardId[], priorities: Priorities) {
         this._newCards = [ ... flashcards ];
+        shuffleArray(this._newCards);
 
         this._priorities = priorities;
         this._attempts = []; 
@@ -42,20 +44,35 @@ class PrioritiesCardDrawer implements CardDrawer {
     }
 
     public drawCard(): string {
-        if (this._attempts.length <= this._priorities.byPercentiles.length && this._newCards.length > 0) {
-            return this.drawNewCard();
-        } else if (this._newCards.length == 0) {
-            return this.drawAttemptedCard();
-        } else {
-            return pickByPercentages([
-                [this._priorities.percentNew, () => this.drawNewCard()],
-                [100 - this._priorities.percentNew, () => this.drawAttemptedCard()]
-            ]);
+        try {
+            if (this._attempts.length <= this._priorities.byPercentiles.length && this._newCards.length > 0) {
+                return this.drawNewCard();
+            } else if (this._newCards.length == 0) {
+                return this.drawAttemptedCard();
+            } else {
+                return pickByPercentages([
+                    [this._priorities.percentNew, () => this.drawNewCard()],
+                    [100 - this._priorities.percentNew, () => this.drawAttemptedCard()]
+                ]);
+            }
+        } catch (e) {
+            console.log("Big mess up trying to draw a card: " + e);
+            return "";
         }
     }
 
     private drawAttemptedCard(): string {
         return drawFromEquallySizedGroupsBasedOnPercentages(this._priorities.byPercentiles, this._attempts).flashcardId;
+        // console.log("in drawAttemptedCard with lastCard: " + this._lastCard);
+        // let attempt = this._lastCard; 
+        // while (attempt != this._lastCard) {
+        //     console.log("inside this loop wehre we do work " + attempt + " -- " + this._lastCard);
+        //     attempt = drawFromEquallySizedGroupsBasedOnPercentages(this._priorities.byPercentiles, this._attempts).flashcardId;
+        // }
+        // console.log(attempt + " : " + this._lastCard + " : " + (attempt == this._lastCard));
+        // this._lastCard = attempt;
+        // console.log("finna return with: " + this._lastCard + " -- " + attempt);
+        // return attempt;
     }
 
     private drawNewCard(): string {
@@ -98,6 +115,7 @@ class PrioritiesCardDrawer implements CardDrawer {
         this._attempts = this._attempts.filter(a => next.has(a.flashcardId));
 
         this._newCards = this._newCards.concat([ ... add]);
+        shuffleArray(this._newCards);
 
         this._flashcardToIndex = new Map<FlashcardId, CardState>();
         this._newCards.forEach((n, i) => this._flashcardToIndex.set(n, {kind: "new", index: i}));
@@ -107,7 +125,7 @@ class PrioritiesCardDrawer implements CardDrawer {
 
 //  like insertion sort
 function maintainSort(attempts: AttemptHistory[], index: number, locations: Map<FlashcardId, CardState>) {
-    const percentHit = (a: AttemptHistory) => (a.successful / a.totalTries);
+    const percentHit = (a: AttemptHistory) => (a.successful * a.successful / a.totalTries);
     const lessThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) < percentHit(b);
     const greaterThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) > percentHit(b);
 
@@ -207,6 +225,14 @@ function divideEquallyIntoInclusiveIndices<T>(list: T[], partitions: number): [n
     }
 
     return result;
+}
+
+// https://stackoverflow.com/a/12646864
+function shuffleArray<T>(array: T[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
 }
 
 // let cd = new CardDrawer(["A", "B", "C", "D", "E", "F"], {byPercentiles: [60, 30, 10], percentNew: 50});

@@ -38,11 +38,6 @@ class PianoPlayer implements SoundPlayer {
         const trueChordStartTime = toTime(reference ? time : 0);
         const trueChordEndTime = toTime(reference ? time * 2 : time);
 
-        console.log(midiNotes);
-        console.log(midiReference);
-        console.log(trueChordStartTime);
-        console.log(trueChordEndTime);
-
         if (midiReference) {
             this._piano.keyDown({midi: midiReference});
             this._piano.keyUp({midi: midiReference, time: trueChordStartTime});

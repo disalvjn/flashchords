@@ -1,11 +1,23 @@
 import { Frequency } from "tone";
 
-export { Note, MidiNote, NoteToMidi, SolfegeClass, OctaveSolfege, toSolfege, toOctaveSolfege, PitchClass, Octave, noteDropdownOptions, numberedNoteDropdownOptions }
+export { Note, MidiNote, NoteToMidi, SolfegeClass, OctaveSolfege, toSolfege, toOctaveSolfege, PitchClass, Octave, noteDropdownOptions, numberedNoteDropdownOptions };
 
 type PitchClass = "A" | "Bb" | "B" | "C" | "Db" | "D" | "Eb" | "E" | "F" | "F#" | "G" | "Ab";
 type Octave = 1 | 2 | 3 | 4 | 5 | 6  | 7 | 8;
 const noteDropdownOptions = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
-const numberedNoteDropdownOptions = [1, 2, 3, 4, 5, 6, 7, 8].flatMap(num => noteDropdownOptions.map(letter => letter + num.toString()));
+
+ function flatMapThatJsReplVSCodeExtensionDoesntComplainAbout<A, B>(items: A[], f: (a: A) => B[]): B[] {
+    const result: B[] = [];
+    items.forEach(i => {
+        f(i).forEach(j => result.push(j));
+    });
+    return result;
+}
+
+const numberedNoteDropdownOptions: string[] = flatMapThatJsReplVSCodeExtensionDoesntComplainAbout(
+    [1, 2, 3, 4, 5, 6, 7, 8],
+    num => noteDropdownOptions.map(letter => letter + num.toString())
+);
 
 type MidiNote = number;
 
