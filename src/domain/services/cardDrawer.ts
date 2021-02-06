@@ -1,17 +1,18 @@
-import { FlashcardId } from "./models/flashcard";
-import { Priorities } from "./models/options";
+import { DerivedFlashcardId } from "../models/flashcard";
+import { Priorities } from "../models/options";
+import { randomNumberBetweenInclusive, shuffleArray } from "../util/util";
 
 export { CardDrawer, PrioritiesCardDrawer }
 
 interface CardDrawer {
-    drawCard(): FlashcardId;
-    recordAttempt(id: FlashcardId, success: boolean): void;
-    resetFlashcards(flashcards: FlashcardId[]): void;
+    drawCard(): DerivedFlashcardId;
+    recordAttempt(id: DerivedFlashcardId, success: boolean): void;
+    resetFlashcards(flashcards: DerivedFlashcardId[]): void;
     resetPriorities(priorities: Priorities): void;
 }
 
 interface AttemptHistory {
-    flashcardId: FlashcardId;
+    flashcardId: DerivedFlashcardId;
     totalTries: number;
     successful: number;
     failed: number;
@@ -21,14 +22,14 @@ type CardState = {kind: "new", index: number} | {kind: "attempted", index: numbe
 
 class PrioritiesCardDrawer implements CardDrawer {
     private _priorities: Priorities;
-    private _lastCard: FlashcardId = "";
+    private _lastCard: DerivedFlashcardId = "";
 
     public _attempts: AttemptHistory[];
-    public _newCards: FlashcardId[];
+    public _newCards: DerivedFlashcardId[];
 
-    public _flashcardToIndex: Map<FlashcardId, CardState>;
+    public _flashcardToIndex: Map<DerivedFlashcardId, CardState>;
 
-    public constructor(flashcards: FlashcardId[], priorities: Priorities) {
+    public constructor(flashcards: DerivedFlashcardId[], priorities: Priorities) {
         this._newCards = [ ... flashcards ];
         shuffleArray(this._newCards);
 
@@ -103,9 +104,9 @@ class PrioritiesCardDrawer implements CardDrawer {
         }
     }
 
-    public resetFlashcards(flashcards: FlashcardId[]) {
+    public resetFlashcards(flashcards: DerivedFlashcardId[]) {
         const next = new Set(flashcards);
-        const current = new Set<FlashcardId>();
+        const current = new Set<DerivedFlashcardId>();
         this._newCards.forEach(n => current.add(n));
         this._attempts.forEach(a => current.add(a.flashcardId));
 
@@ -117,14 +118,14 @@ class PrioritiesCardDrawer implements CardDrawer {
         this._newCards = this._newCards.concat([ ... add]);
         shuffleArray(this._newCards);
 
-        this._flashcardToIndex = new Map<FlashcardId, CardState>();
+        this._flashcardToIndex = new Map<DerivedFlashcardId, CardState>();
         this._newCards.forEach((n, i) => this._flashcardToIndex.set(n, {kind: "new", index: i}));
         this._attempts.forEach((a, i) => this._flashcardToIndex.set(a.flashcardId, {kind: "attempted", index: i}));
     }
 }
 
 //  like insertion sort
-function maintainSort(attempts: AttemptHistory[], index: number, locations: Map<FlashcardId, CardState>) {
+function maintainSort(attempts: AttemptHistory[], index: number, locations: Map<DerivedFlashcardId, CardState>) {
     const percentHit = (a: AttemptHistory) => (a.successful * a.successful / a.totalTries);
     const lessThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) < percentHit(b);
     const greaterThan = (a: AttemptHistory, b: AttemptHistory) => percentHit(a) > percentHit(b);
@@ -193,10 +194,6 @@ function pickByPercentages<T>(probabilitiesAndActions: [IntegerPercentage, () =>
 }
 
 
-function randomNumberBetweenInclusive(low: number, high: number) {
-    return Math.floor(Math.random() * (high - low + 1) + low);
-}
-
 function divideEquallyIntoInclusiveIndices<T>(list: T[], partitions: number): [number, number][] {
     const roughSizePerGroupFrac = list.length / partitions;
     const dividesCleanly = roughSizePerGroupFrac % 1 == 0;
@@ -225,14 +222,6 @@ function divideEquallyIntoInclusiveIndices<T>(list: T[], partitions: number): [n
     }
 
     return result;
-}
-
-// https://stackoverflow.com/a/12646864
-function shuffleArray<T>(array: T[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
 }
 
 // let cd = new CardDrawer(["A", "B", "C", "D", "E", "F"], {byPercentiles: [60, 30, 10], percentNew: 50});

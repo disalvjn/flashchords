@@ -1,16 +1,11 @@
-import { MidiNote, Note, NoteToMidi } from "./notes";
+import { MidiNote, Note, NoteToMidi } from "../models/notes";
+import { MidiBatcherConfig } from "../models/options";
 
 export type MidiBatcherEvent = 
     {kind: "rightAnswer", onFirstGuess: boolean}
     | {kind: "giveUp"}
     | {kind: "nextCard"}
     | {kind: "replay"}
-
-export interface MidiBatcherConfig {
-    giveUp: MidiNote;
-    nextCard: MidiNote;
-    replay: MidiNote;
-}
 
 export class MidiBatcher {
     private _target: (MidiNote[])[] = [];
@@ -49,11 +44,11 @@ export class MidiBatcher {
 
     accept(note: MidiNote): void 
     {
-        if (note == this._config.giveUp) {
+        if (note == NoteToMidi(this._config.giveUp)) {
             this._emit({kind: "giveUp"});
-        } else if (note == this._config.nextCard) {
+        } else if (note == NoteToMidi(this._config.nextCard)) {
             this._emit({kind: "nextCard"});
-        } else if (note == this._config.replay) {
+        } else if (note == NoteToMidi(this._config.replay)) {
             this._emit({kind: "replay"});
         } else {
 

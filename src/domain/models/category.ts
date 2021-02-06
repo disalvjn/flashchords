@@ -1,4 +1,4 @@
-import { Flashcard } from "./flashcard";
+import { PlatonicFlashcard } from "./flashcard";
 
 interface Category {
     readonly id: string;
@@ -44,7 +44,7 @@ function reifyHelper(idCategories: {id: string, category: string[]}[]): Category
     return topLevelCategories;
 }
 
-function reifyCategories(flashcards: Flashcard[]): Category[] {
+function reifyCategories(flashcards: PlatonicFlashcard[]): Category[] {
     return reifyHelper(flashcards.map(f => ({id: f.id, category: f.category})));
 }
 

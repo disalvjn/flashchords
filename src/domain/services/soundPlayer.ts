@@ -1,6 +1,6 @@
 import { Piano } from "@tonejs/piano";
 import { start, context, Time } from "tone";
-import { Note, NoteToMidi } from "./notes";
+import { Note, NoteToMidi } from "../models/notes";
 
 export { SoundPlayer, PianoPlayer }
 

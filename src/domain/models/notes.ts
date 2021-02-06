@@ -1,27 +1,12 @@
 import { Frequency } from "tone";
+import { mapcat } from "../util/util";
 
-export { Note, MidiNote, NoteToMidi, SolfegeClass, OctaveSolfege, toSolfege, toOctaveSolfege, PitchClass, Octave, noteDropdownOptions, numberedNoteDropdownOptions };
+export type PitchClass = "A" | "Bb" | "B" | "C" | "Db" | "D" | "Eb" | "E" | "F" | "F#" | "G" | "Ab";
+export type Octave = 1 | 2 | 3 | 4 | 5 | 6  | 7 | 8;
 
-type PitchClass = "A" | "Bb" | "B" | "C" | "Db" | "D" | "Eb" | "E" | "F" | "F#" | "G" | "Ab";
-type Octave = 1 | 2 | 3 | 4 | 5 | 6  | 7 | 8;
-const noteDropdownOptions = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+export type MidiNote = number;
 
- function flatMapThatJsReplVSCodeExtensionDoesntComplainAbout<A, B>(items: A[], f: (a: A) => B[]): B[] {
-    const result: B[] = [];
-    items.forEach(i => {
-        f(i).forEach(j => result.push(j));
-    });
-    return result;
-}
-
-const numberedNoteDropdownOptions: string[] = flatMapThatJsReplVSCodeExtensionDoesntComplainAbout(
-    [1, 2, 3, 4, 5, 6, 7, 8],
-    num => noteDropdownOptions.map(letter => letter + num.toString())
-);
-
-type MidiNote = number;
-
-type SolfegeClass = "do" 
+export type SolfegeClass = "do" 
     | "ra" | "re" | "ri" 
     | "me" | "mi"
     | "fa" | "fi"
@@ -29,20 +14,47 @@ type SolfegeClass = "do"
     | "le" | "la" | "li"
     | "te" | "ti"
 
-type OctaveSolfege = {octaveOffset: number, solfege: SolfegeClass};
+export type OctaveSolfegeRelative = {octaveOffset: number, solfege: SolfegeClass};
 
-type Note =  
-    {kind: "solfege", solfege: OctaveSolfege, tonic: Note}
+export type Note =  
+    {kind: "solfege", solfege: OctaveSolfegeRelative, tonic: Note}
     | {kind: "midi", midi: number} 
     | {kind: "scientific", class: PitchClass, octave: Octave};
 
-function NoteToMidi(note: Note): MidiNote {
+export function solfegeNote(solfege: OctaveSolfegeRelative, tonic: Note): Note {
+    return {kind: "solfege", solfege: solfege, tonic: tonic};
+}
+
+export function scientificNote(pitchClass: PitchClass, octave: Octave): Note {
+    return {kind: "scientific", class: pitchClass, octave: octave};
+}
+
+export function midiNote(midi: number): Note {
+    return {kind: "midi", midi: midi};
+}
+
+export type MusicalPhrase = Note[][];
+
+export const noteDropdownOptions = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+
+export const numberedNoteDropdownOptions: string[] = mapcat(
+    [1, 2, 3, 4, 5, 6, 7, 8],
+    num => noteDropdownOptions.map(letter => letter + num.toString())
+);
+
+export function NoteToMidi(note: Note): MidiNote {
     return note.kind == "midi" ? note.midi
         : note.kind == "scientific" ? Frequency(note.class + note.octave.toString()).toMidi()
         : offsetFromRoot(note.solfege.solfege) + 12 * note.solfege.octaveOffset + NoteToMidi(note.tonic);
 }
 
-function offsetFromRoot(solfege: SolfegeClass): number {
+export type NoteComparison = "greater" | "equal" | "lesser"
+export function compareNotes(n: Note, m: Note): NoteComparison {
+    const x = NoteToMidi(n); const y = NoteToMidi(m);
+    return x < y ? "lesser" : x > y ? "greater" : "equal";
+}
+
+export function offsetFromRoot(solfege: SolfegeClass): number {
     return solfege == "do" ? 0
         : solfege == "ra" ? 1
         : solfege == "re" ? 2
@@ -62,7 +74,7 @@ function offsetFromRoot(solfege: SolfegeClass): number {
         : -1; 
 }
 
-function toSolfege(solfege: string): SolfegeClass {
+export function toSolfege(solfege: string): SolfegeClass {
     if (offsetFromRoot(solfege as SolfegeClass) == -1) {
         console.log("Not valid solfege: " + solfege);
         throw new Error("Invalid solfege: " + solfege);
@@ -72,10 +84,10 @@ function toSolfege(solfege: string): SolfegeClass {
 }
 
 // just for ascending chords
-function toOctaveSolfege(solfege: SolfegeClass[]): OctaveSolfege[] {
+export function toOctaveSolfege(solfege: SolfegeClass[]): OctaveSolfegeRelative[] {
     let maxOffsetSoFar = -1;
     let octave = 0;
-    const result: OctaveSolfege[] = [];
+    const result: OctaveSolfegeRelative[] = [];
 
     solfege.forEach(note => {
         const baseOffset = offsetFromRoot(note) ?? 0;
