@@ -26,12 +26,17 @@
     </v-tab-item>
     <v-tab> Options </v-tab>
     <v-tab-item>
-     <options-editor v-model="options"></options-editor>
+      <v-container>
+        <v-row>
+          <v-col class="lg-6"><options-editor v-model="options"></options-editor></v-col>
+          <v-col class="lg-6"><flashcardSelector :categories="categories" v-model="selectedFlashcardIds"></flashcardSelector></v-col>
+        </v-row>
+      </v-container>
     </v-tab-item>
-    <v-tab> Flashcards </v-tab>
+    <!-- <v-tab> Flashcards </v-tab>
     <v-tab-item>
       <flashcardSelector :categories="categories" v-model="selectedFlashcardIds"></flashcardSelector>
-    </v-tab-item>
+    </v-tab-item> -->
   </v-tabs>
   </v-main>
 </v-app>
@@ -45,13 +50,15 @@ import { Piano } from '@tonejs/piano';
 import { VBtn, VContainer, VRow, VCol, VTabs, VApp, VMain, VTabItem, VTab } from "vuetify/lib";
 
 import { chordEntities } from './flashcards/chords/chord-entities';
-import { PlatonicFlashcard, DerivedFlashcard, chordEntityToModel, PlatonicFlashcardId, DerivedFlashcardId } from './domain/models/flashcard';
+import { PlatonicFlashcard, DerivedFlashcard, chordEntityToModel, PlatonicFlashcardId, DerivedFlashcardId, getMusicalPhrase } from './domain/models/flashcard';
 import { reifyCategories , Category } from './domain/models/category';
 import { Options, defaultOptions } from './domain/models/options';
 import { PrioritiesCardDrawer, CardDrawer } from './domain/services/cardDrawer';
 import { SoundPlayer, PianoPlayer } from './domain/services/soundPlayer';
 import { Note, NoteToMidi, scientificNote } from "./domain/models/notes";
 import { MidiBatcher } from "./domain/services/midiBatcher";
+import { derive } from "./domain/services/flashcardDeriver";
+import { indexBy } from "./domain/util/util";
 import webmidi, { WebMidi } from "webmidi";
 
 interface PracticeState {
@@ -75,6 +82,8 @@ export default class App extends Vue {
   private selectedFlashcardIds: PlatonicFlashcardId[] = [];
   private categories: Category[] = reifyCategories(this.chords);
 
+  private activeFlashcards: DerivedFlashcard[] =[];
+
   private cardDrawer: CardDrawer = new PrioritiesCardDrawer(this.selectedFlashcardIds, this.options.priorities);
   private player: SoundPlayer | undefined = undefined;
 
@@ -91,112 +100,100 @@ export default class App extends Vue {
   })
   optionsChanged(newVal: Options) {
     this.cardDrawer.resetPriorities(newVal.priorities);
+    const platonicCardsById = indexBy(this.chords, c => c.id);
+    this.activeFlashcards = derive(this.options.derivation, this.selectedFlashcardIds.map(f => platonicCardsById.get(f)!));
+    this.cardDrawer.resetFlashcards(this.activeFlashcards.map(f => f.id));
   }
 
-  // @Watch('selectedFlashcardIds', { deep: true })
-  // selectedFlashcardIdsChanged(newVal: PlatonicFlashcardId[]) {
-  //   // todo: generate
-  //   // this.cardDrawer.resetFlashcards(newVal);
-  // }
+  async loadPiano() {
+    this.player = new PianoPlayer(this.options.play);
+    await this.player.load();
+    this.pianoLoaded = true;
 
-  // async loadPiano() {
-  //   this.player = new PianoPlayer();
-  //   await this.player.load();
-  //   this.pianoLoaded = true;
+    webmidi.enable(ex => {
+      if (ex != undefined) {
+        console.log("Error trying to setup midi listener: " + ex.name);
+      } else {
+        console.log("Successfully set up midi listner.")
+      }
 
-  //   webmidi.enable(ex => {
-  //     if (ex != undefined) {
-  //       console.log("Error trying to setup midi listener: " + ex.name);
-  //     } else {
-  //       console.log("Successfully set up midi listner.")
-  //     }
+      console.log(webmidi.inputs);
+      console.log(webmidi.outputs);
 
-  //     console.log(webmidi.inputs);
-  //     console.log(webmidi.outputs);
+      if (webmidi.inputs.length == 0) {
+        console.log("No midi input device detected.");
+      }
 
-  //     if (webmidi.inputs.length == 0) {
-  //       console.log("No midi input device detected.");
-  //     }
+      const input = webmidi.inputs[0];
+      input.addListener("noteon", "all", e => {
+        this.midiBatcher.accept(e.note.number);
+      });
+    }, true);
 
-  //     const input = webmidi.inputs[0];
-  //     input.addListener("noteon", "all", e => {
-  //       this.midiBatcher.accept(e.note.number);
-  //     });
-  //   }, true);
+    this.midiBatcher.setEmit(event => {
+      if (event.kind == "giveUp") {
+        this.giveUp();
+      } else if (event.kind == "replay") {
+        this.playCard();
+      } else if (event.kind == "nextCard") {
+        this.recordResult(false);
+        this.drawCard();
+        this.playCard();
+      } else if (event.kind == "rightAnswer") {
+        this.recordResult(event.onFirstGuess);
+        this.drawCard();
+        this.playCard();
+      }
+    });
 
-  //   this.midiBatcher.setEmit(event => {
-  //     if (event.kind == "giveUp") {
-  //       this.giveUp();
-  //     } else if (event.kind == "replay") {
-  //       this.playCard();
-  //     } else if (event.kind == "nextCard") {
-  //       this.recordResult(false);
-  //       this.drawCard();
-  //       this.playCard();
-  //     } else if (event.kind == "rightAnswer") {
-  //       this.recordResult(event.onFirstGuess);
-  //       this.drawCard();
-  //       this.playCard();
-  //     }
-  //   });
+    this.drawCard();
+    this.playCard();
+  }
 
-  //   this.drawCard();
-  //   this.playCard();
-  // }
+  drawCard() {
+    try {
+      this.practiceState = {currentCardId: this.cardDrawer.drawCard(), wrongGuesses: 0, giveUp: false};
+      const currentCard = this.currentCard!;
+      this.midiBatcher.resetTarget(getMusicalPhrase(currentCard));
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
-  // drawCard() {
-  //   try {
-  //     this.practiceState = {currentCardId: this.cardDrawer.drawCard(), wrongGuesses: 0, giveUp: false};
-  //     const currentCard = this.currentCard!;
-  //     const chord: Note[] = currentCard.notes.map(s => ({kind: "solfege", solfege: s, tonic: this.options.tonic}));
-  //     this.midiBatcher.resetTarget([chord]);
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
+  recordResult(success: boolean) {
+    try {
+      this.cardDrawer.recordAttempt(this.practiceState.currentCardId, success);
+      this.drawCard();
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
-  // recordResult(success: boolean) {
-  //   try {
-  //     this.cardDrawer.recordAttempt(this.practiceState.currentCardId, success);
-  //     this.drawCard();
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
+  playCard() {
+    const currentCard = this.currentCard;
 
-  // playCard() {
-  //   const currentCard = this.currentCard;
+    this.player!.playMusicalPhrase(getMusicalPhrase(currentCard!));
+  }
 
-  //   if (currentCard && currentCard.kind == "chord") {
-  //     const chord: Note[] = currentCard.notes.map(s => ({kind: "solfege", solfege: s, tonic: this.options.tonic}));
-  //     console.log(chord);
-  //     this.player!.playChord(chord, 1, this.options.referenceNote);
-  //   }
-  // }
+  giveUp() {
+    this.practiceState.giveUp = true;
+  }
 
-  // giveUp() {
-  //   this.practiceState.giveUp = true;
-  // }
+  get chordsbyId(): Map<DerivedFlashcardId, DerivedFlashcard> {
+    const result = new Map<DerivedFlashcardId, DerivedFlashcard>();
+    this.activeFlashcards.forEach(c => result.set(c.id, c));
+    return result;
+  }
 
-  // get chordsbyId(): Map<FlashcardId, Flashcard> {
-  //   const result = new Map<FlashcardId, Flashcard>();
-  //   this.chords.forEach(c => result.set(c.id, c));
-  //   return result;
-  // }
+  get currentCard(): DerivedFlashcard | undefined {
+    return this.chordsbyId.get(this.practiceState.currentCardId);
+  }
 
-  // get currentCard(): Flashcard | undefined {
-  //   return this.chordsbyId.get(this.practiceState.currentCardId);
-  // }
-
-  // get currentCardDescription(): string {
-  //   return this.currentCard == undefined 
-  //     ? ""
-
-  //     : this.currentCard.kind == "chord" 
-  //     ? this.currentCard.function + " " + this.currentCard.inversion + " : " + this.currentCard.notes.map(n => n.solfege).join(", ")
-
-  //     : this.currentCard.notes.join(", ");
-  // }
+  get currentCardDescription(): string {
+    return this.currentCard == undefined 
+      ? ""
+      : this.currentCard.id;
+  }
 }
 
 </script>

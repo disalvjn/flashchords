@@ -20,6 +20,12 @@ export type DerivedFlashcard = DerivedFlashcardWithId &
     | {kind: "sequence", sequence: Note[][], bases: DerivedFlashcardId[]}
     | {kind: "polychord", bases: DerivedFlashcardId[], notes: Note[]});
 
+export function getMusicalPhrase(flashcard: DerivedFlashcard): MusicalPhrase {
+    return flashcard.kind == "octave-instantiated-chord" ? [flashcard.notes]
+        : flashcard.kind == "sequence" ? flashcard.sequence
+        : [flashcard.notes];
+}
+
 export function octaveInstantiatedChord(octave: number, tonic: PitchClass, notes: Note[], base: PlatonicFlashcardId): DerivedFlashcard {
     return {
         id: "tonic=" + tonic + octave.toString() + " chord: " + base,

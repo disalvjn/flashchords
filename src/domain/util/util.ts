@@ -68,3 +68,9 @@ export function doTimes<T>(f: () => T, count: number): T[] {
     }
     return result;
 }
+
+export function indexBy<K, V>(items: V[], f: (v: V) => K): Map<K, V> {
+    const result = new Map<K, V>();
+    items.forEach(x => result.set(f(x), x));
+    return result;
+}

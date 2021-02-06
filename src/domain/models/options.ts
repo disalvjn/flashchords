@@ -24,11 +24,16 @@ export type MidiBatcherConfig = {
     replay: Note;
 }
 
+export type PlayOptions = {
+    drone: boolean;
+    referenceNote: Note;
+    playReference: boolean;
+    bpm: number;
+}
 
 export type Options = {
 
-    drone: boolean;
-    referenceNote: Note;
+    play: PlayOptions;
 
     priorities: Priorities;
 
@@ -50,8 +55,12 @@ export type Priorities = {
 }
 
 export const defaultOptions: Options = {
-    drone: false,
-    referenceNote: scientificNote("A", 3),
+    play: {
+        drone: false,
+        referenceNote: scientificNote("A", 3),
+        playReference: true,
+        bpm: 60
+    },
     priorities: {
         percentNew: 50,
         byPercentiles: [65, 35]

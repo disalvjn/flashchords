@@ -10,7 +10,7 @@ import { Component, Watch, Emit, Prop, Vue } from "vue-property-decorator";
 import { VBtn, VContainer, VRow, VCol, VSelect,VCheckbox, VTextField } from "vuetify/lib";
 import { defaultOptions, Options } from "../domain/models/options";
 import { Note, Octave, PitchClass, numberedNoteDropdownOptions } from "../domain/models/notes";
-import vueJsonEditor from 'vue-json-editor';
+import vueJsonEditor from "vue-json-editor";
 
 @Component ({
   components: {

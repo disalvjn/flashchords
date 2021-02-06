@@ -3,7 +3,7 @@ import { Note, PitchClass, NoteToMidi, Octave, solfegeNote, midiNote, scientific
 import { mapcat, shuffleArray, drawRandomSample, RandomSampleRepeatOptions, doTimes } from "../util/util";
 import { DerivationOptions } from "../models/options";
 
-function derive(options: DerivationOptions, flashcards: PlatonicFlashcard[]): DerivedFlashcard[] {
+export function derive(options: DerivationOptions, flashcards: PlatonicFlashcard[]): DerivedFlashcard[] {
     if (options.tonality.kind == "tonal") {
         const transposed = mapcat(flashcards, f => instantiateInOctaves(f, options.lowestNote, options.highestNote, options.tonality.tonic));
         shuffleArray(transposed);
@@ -55,7 +55,7 @@ function instantiateInOctaves(flashcard: PlatonicFlashcard, lowestNote: Note, hi
         const result: DerivedFlashcard[] = [];
         octaves.forEach(o => {
             const tonic = scientificNote(tonicPitch, o);
-            let candidate = octaveInstantiatedChord(
+            const candidate = octaveInstantiatedChord(
                 o,
                 tonicPitch,
                 flashcard.notes.map(n => solfegeNote(n, tonic)),
