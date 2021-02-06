@@ -22,6 +22,7 @@ export type MidiBatcherConfig = {
     giveUp: Note;
     nextCard: Note;
     replay: Note;
+    toggleIgnoreInput: Note;
 }
 
 export type PlayOptions = {
@@ -78,6 +79,7 @@ export const defaultOptions: Options = {
     commands: {
         giveUp: scientificNote("Ab", 7),
         replay: scientificNote("F#", 7),
-        nextCard: scientificNote("Bb", 7)
+        nextCard: scientificNote("Bb", 7),
+        toggleIgnoreInput: scientificNote("G", 7)
     }
 };

@@ -17,6 +17,8 @@ export class MidiBatcher {
     private _config: MidiBatcherConfig;
     private _emit: ((m: MidiBatcherEvent) => void);
 
+    private _ignoringInputNow = false;
+
     constructor(config: MidiBatcherConfig, emit: (m: MidiBatcherEvent) => void)
     {
         this._config = config;
@@ -44,28 +46,35 @@ export class MidiBatcher {
 
     accept(note: MidiNote): void 
     {
-        if (note == NoteToMidi(this._config.giveUp)) {
-            this._emit({kind: "giveUp"});
-        } else if (note == NoteToMidi(this._config.nextCard)) {
-            this._emit({kind: "nextCard"});
-        } else if (note == NoteToMidi(this._config.replay)) {
-            this._emit({kind: "replay"});
-        } else {
+        if (note == NoteToMidi(this._config.toggleIgnoreInput)) {
+            this._ignoringInputNow = !this._ignoringInputNow;
+        }
 
-            this._input.push(note);
-            if (this._input.length < this._maxInputLength) {
-                // do nothing, we don't have enough to try matching yet
+        if (!this._ignoringInputNow) {
+
+            if (note == NoteToMidi(this._config.giveUp)) {
+                this._emit({kind: "giveUp"});
+            } else if (note == NoteToMidi(this._config.nextCard)) {
+                this._emit({kind: "nextCard"});
+            } else if (note == NoteToMidi(this._config.replay)) {
+                this._emit({kind: "replay"});
             } else {
-                if (this._input.length > this._maxInputLength) {
-                    this._input.shift();
-                }
-
-                const batched = batch(this._input, this._batchSizes);
-
-                if (batchesEqual(batched, this._target)) {
-                    this._emit({kind: "rightAnswer", onFirstGuess: !this._failedYet});
+    
+                this._input.push(note);
+                if (this._input.length < this._maxInputLength) {
+                    // do nothing, we don't have enough to try matching yet
                 } else {
-                    this._failedYet = true;
+                    if (this._input.length > this._maxInputLength) {
+                        this._input.shift();
+                    }
+    
+                    const batched = batch(this._input, this._batchSizes);
+    
+                    if (batchesEqual(batched, this._target)) {
+                        this._emit({kind: "rightAnswer", onFirstGuess: !this._failedYet});
+                    } else {
+                        this._failedYet = true;
+                    }
                 }
             }
         }
