@@ -1,43 +1,36 @@
 <template>
 <v-app>
   <v-main>
-  <v-tabs>
-    <v-tab> Let's go! </v-tab>
-    <v-tab-item>
-      <v-container>
-        <v-row v-if="this.practiceState.giveUp">
-          <v-col><h2>{{ currentCardDescription }}</h2></v-col>
-        </v-row>
-        <v-row v-if="this.selectedFlashcardIds.length == 0">
-          <v-col class="md-12"><h2>No Flashcards Selected</h2></v-col>
-        </v-row>
-        <v-row v-else-if="!pianoLoaded">
-          <v-btn @click="loadPiano"><h1>Load Piano</h1></v-btn>
-        </v-row>
-        <!-- Button navigation for testing -->
-        <v-row v-else>
-          <v-col class="md-2"><v-btn @click="drawCard">Draw Card</v-btn></v-col>
-          <v-col class="md-2"><v-btn @click="giveUp">Give Up</v-btn></v-col>
-          <v-col class="md-2"><v-btn @click="playCard">Play Card</v-btn></v-col>
-          <v-col class="md-2"><v-btn @click="recordResult(true)">Succeed</v-btn></v-col>
-          <v-col class="md-2"><v-btn @click="recordResult(false)">Fail</v-btn></v-col>
-        </v-row>
-      </v-container>
-    </v-tab-item>
-    <v-tab> Options </v-tab>
-    <v-tab-item>
-      <v-container>
-        <v-row>
-          <v-col class="lg-6"><options-editor v-model="options"></options-editor></v-col>
-          <v-col class="lg-6"><flashcardSelector :categories="categories" v-model="selectedFlashcardIds"></flashcardSelector></v-col>
-        </v-row>
-      </v-container>
-    </v-tab-item>
-    <!-- <v-tab> Flashcards </v-tab>
-    <v-tab-item>
-      <flashcardSelector :categories="categories" v-model="selectedFlashcardIds"></flashcardSelector>
-    </v-tab-item> -->
-  </v-tabs>
+    <v-container v-if="pianoLoaded">
+      <v-row v-if="this.practiceState.giveUp">
+        <v-col><h2>{{ currentCardDescription }}</h2></v-col>
+      </v-row>
+      <v-row v-if="this.selectedFlashcardIds.length == 0">
+        <v-col class="md-12"><h2>No Flashcards Selected</h2></v-col>
+      </v-row>
+      <v-row v-else-if="!pianoLoaded">
+        <v-btn @click="loadPiano"><h1>Load Piano</h1></v-btn>
+      </v-row>
+      <!-- Button navigation for testing -->
+      <v-row v-else>
+        <v-col class="md-2"><v-btn @click="drawCard">Draw Card</v-btn></v-col>
+        <v-col class="md-2"><v-btn @click="giveUp">Give Up</v-btn></v-col>
+        <v-col class="md-2"><v-btn @click="playCard">Play Card</v-btn></v-col>
+        <v-col class="md-2"><v-btn @click="recordResult(true)">Succeed</v-btn></v-col>
+        <v-col class="md-2"><v-btn @click="recordResult(false)">Fail</v-btn></v-col>
+      </v-row>
+    </v-container>
+    <v-container v-else>
+      <v-row>
+        <v-col class="lg-4"></v-col>
+        <v-col class="lg-4"><v-btn @click="loadAll">Proceed Irreversibly</v-btn></v-col>
+        <v-col class="lg-4"></v-col>
+      </v-row>
+      <v-row>
+        <v-col class="lg-6"><options-editor v-model="options"></options-editor></v-col>
+        <v-col class="lg-6"><flashcardSelector :categories="categories" v-model="selectedFlashcardIds"></flashcardSelector></v-col>
+      </v-row>
+    </v-container>
   </v-main>
 </v-app>
 </template>
@@ -95,17 +88,14 @@ export default class App extends Vue {
 
   private practiceState: PracticeState = {currentCardId: "", wrongGuesses: 0, giveUp: false};
 
-  @Watch('options', {
-    deep: true
-  })
-  optionsChanged(newVal: Options) {
-    this.cardDrawer.resetPriorities(newVal.priorities);
+  async loadAll() {
+    // load cards
+    this.cardDrawer.resetPriorities(this.options.priorities);
     const platonicCardsById = indexBy(this.chords, c => c.id);
     this.activeFlashcards = derive(this.options.derivation, this.selectedFlashcardIds.map(f => platonicCardsById.get(f)!));
     this.cardDrawer.resetFlashcards(this.activeFlashcards.map(f => f.id));
-  }
 
-  async loadPiano() {
+    // load piano and midi
     this.player = new PianoPlayer(this.options.play);
     await this.player.load();
     this.pianoLoaded = true;

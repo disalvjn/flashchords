@@ -1,6 +1,5 @@
 <template>
 <div>
-    <v-btn @click="emit">Commit</v-btn>
     <vue-json-editor v-model="options" :expandedOnStart="true" @json-change="onJsonChange"></vue-json-editor>
 </div>
 </template>
@@ -25,6 +24,7 @@ export default class OptionsEditor extends Vue {
 
     onJsonChange(newValue: Options) {
         this.options = newValue;
+        this.emit();
     }
 
     @Emit('input')

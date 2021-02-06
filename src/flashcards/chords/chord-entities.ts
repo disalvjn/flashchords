@@ -1,7 +1,7 @@
-import { diatonicMajorRootTriads } from './triads/diatonic-major-root-triads';
-import { diatonicMinorRootTriads } from './triads/diatonic-minor-root-triads';
+import { diatonicMajorTriads } from './triads/diatonic-major-triads';
+import { diatonicMinorTriads } from './triads/diatonic-minor-triads';
 import { singlets } from './singlets';
 
-const chordEntities = diatonicMajorRootTriads.concat(diatonicMinorRootTriads).concat(singlets);
+const chordEntities = diatonicMajorTriads.concat(diatonicMinorTriads).concat(singlets);
 
 export { chordEntities }
