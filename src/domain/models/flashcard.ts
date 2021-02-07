@@ -1,5 +1,5 @@
 import { ChordFlashcardEntity } from "../entities/chord-flashcard-entity";
-import { OctaveSolfegeRelative, toSolfege, toOctaveSolfege, MusicalPhrase, Note, PitchClass } from "./notes";
+import { OctaveSolfegeRelative, toSolfege, toOctaveSolfege, MusicalPhrase, Note, PitchClass, noteToHumanReadable } from "./notes";
 
 export type PlatonicFlashcardId = string;
 export type DerivedFlashcardId = string;
@@ -10,6 +10,7 @@ interface PlatonicFlashcardWithId {
 
 interface DerivedFlashcardWithId {
     readonly id: DerivedFlashcardId;
+    readonly humanReadableNotes: string;
 }
 
 export type PlatonicFlashcard = PlatonicFlashcardWithId &
@@ -26,9 +27,20 @@ export function getMusicalPhrase(flashcard: DerivedFlashcard): MusicalPhrase {
         : [flashcard.notes];
 }
 
+export function getBases(flashcard: DerivedFlashcard): DerivedFlashcardId[] {
+    return flashcard.kind == "octave-instantiated-chord" ? [flashcard.id]
+        : flashcard.bases;
+}
+
+export function humanReadableNotes(phrase: Note[][]): string {
+    const humanified = phrase.map(notes => notes.map(noteToHumanReadable));
+    return humanified.map(notes => notes.join(" ")).join(" :: ");
+}
+
 export function octaveInstantiatedChord(octave: number, tonic: PitchClass, notes: Note[], base: PlatonicFlashcardId): DerivedFlashcard {
     return {
         id: "tonic=" + tonic + octave.toString() + " chord: " + base,
+        humanReadableNotes: humanReadableNotes([notes]),
         kind: "octave-instantiated-chord",
         base: base,
         tonic: tonic,
@@ -40,6 +52,7 @@ export function octaveInstantiatedChord(octave: number, tonic: PitchClass, notes
 export function sequence(notes: Note[][], bases: DerivedFlashcardId[]): DerivedFlashcard {
     return {
         id: "sequence: " + bases.join("  && "),
+        humanReadableNotes: humanReadableNotes(notes),
         kind: "sequence",
         bases: bases,
         sequence: notes
@@ -49,6 +62,7 @@ export function sequence(notes: Note[][], bases: DerivedFlashcardId[]): DerivedF
 export function polychord(notes: Note[], bases: DerivedFlashcardId[]): DerivedFlashcard {
     return {
         id: "polychord: " + bases.join(" && "),
+        humanReadableNotes: humanReadableNotes([notes]),
         kind: "polychord",
         bases: bases,
         notes: notes

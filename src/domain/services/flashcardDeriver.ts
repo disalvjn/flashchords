@@ -1,29 +1,48 @@
-import { PlatonicFlashcard, DerivedFlashcard, DerivedFlashcardId, chordEntityToModel, polychord, sequence, octaveInstantiatedChord } from "../models/flashcard";
+import { PlatonicFlashcard, DerivedFlashcard, DerivedFlashcardId, chordEntityToModel, polychord, sequence, octaveInstantiatedChord, getMusicalPhrase, getBases } from "../models/flashcard";
 import { Note, PitchClass, NoteToMidi, Octave, solfegeNote, midiNote, scientificNote } from "../models/notes";
 import { mapcat, shuffleArray, drawRandomSample, RandomSampleRepeatOptions, doTimes } from "../util/util";
-import { DerivationOptions } from "../models/options";
+import { ArpeggioType, DerivationOptions } from "../models/options";
 
 export function derive(options: DerivationOptions, flashcards: PlatonicFlashcard[]): DerivedFlashcard[] {
     if (options.tonality.kind == "tonal") {
         const transposed = mapcat(flashcards, f => instantiateInOctaves(f, options.lowestNote, options.highestNote, options.tonality.tonic));
         shuffleArray(transposed);
 
-        if (options.chunkSize <= 1 && !options.apreggiateChords) {
-            return transposed.slice(0, Math.min(options.cards, transposed.length));
-        // todo: there should be a totally separate generation here, to allow for ascending and descending
-        } else if (options.chunkType == "sequence" || options.apreggiateChords) {
-            return doTimes(() => createSequence(transposed, options.chunkSize, options.apreggiateChords, options.repeats), options.cards);
-        } else if (options.chunkType == "polychord") {
-            return doTimes(() => createPolychord(transposed, options.chunkSize), options.cards);
-        } else {
-            throw new Error("Unsupported chunkType: " + options.chunkType);
-        }
-        // generate pool between lowest/highest
-        // function to sample for sequence
+        const derived = 
+            (options.chunkSize <= 1 && !options.apreggiateChords)
+            ? transposed.slice(0, Math.min(options.cards, transposed.length))
+
+            : options.chunkType == "sequence" || options.apreggiateChords
+            ? doTimes(() => createSequence(transposed, options.chunkSize, options.repeats), options.cards)
+
+            // polychord
+            : doTimes(() => createPolychord(transposed, options.chunkSize), options.cards);
+
+        return derived.map(f => applyArpeggio(f, options.apreggiateChords));
 
     } else {
         throw new Error("Unsupported tonality type.");
     }
+}
+
+function applyArpeggio(flashcard: DerivedFlashcard, arpeggioType: ArpeggioType): DerivedFlashcard {
+    if (arpeggioType == "none") {
+        return flashcard;
+    } else {
+        const phrase = getMusicalPhrase(flashcard);
+        const bases = getBases(flashcard);
+
+        const arpeggiatedFlat = phrase.flat();
+        arpeggiatedFlat.sort((n, m) => NoteToMidi(n) < NoteToMidi(m) ? -1 : 1);
+
+        const arpeggiated = arpeggiatedFlat.map(n => [n]);
+
+        if (arpeggioType == "descending") {
+            arpeggiated.reverse();
+        }
+
+        return sequence(arpeggiated, bases);
+    } 
 }
 
 function chordNotes(card: DerivedFlashcard): Note[] {
@@ -34,9 +53,9 @@ function chordNotes(card: DerivedFlashcard): Note[] {
     }
 }
 
-function createSequence(flashcards: DerivedFlashcard[], chunkSize: number, arpeggiate: boolean, sampleOptions: RandomSampleRepeatOptions): DerivedFlashcard {
+function createSequence(flashcards: DerivedFlashcard[], chunkSize: number, sampleOptions: RandomSampleRepeatOptions): DerivedFlashcard {
     const cards = drawRandomSample(flashcards, chunkSize, sampleOptions);
-    return sequence(arpeggiate ? [mapcat(cards, chordNotes)] : cards.map(chordNotes), cards.map(c => c.id));
+    return sequence(cards.map(chordNotes), cards.map(c => c.id));
 }
 
 function createPolychord(flashcards: DerivedFlashcard[], chunkSize: number): DerivedFlashcard {

@@ -7,6 +7,7 @@ export type Tonality =
     // | {kind: "atonal-fixed", commonRoot: PitchClass }
     // | {kind: "chromatically-transposed" }
 
+export type ArpeggioType = "none" | "ascending" | "descending"
 export type DerivationOptions = {
     lowestNote: Note;
     highestNote: Note;
@@ -15,7 +16,7 @@ export type DerivationOptions = {
     chunkType: ChunkType;
     repeats: RandomSampleRepeatOptions;
     cards: number;
-    apreggiateChords: boolean;
+    apreggiateChords: ArpeggioType;
 }
 
 export type MidiBatcherConfig = {
@@ -74,7 +75,7 @@ export const defaultOptions: Options = {
         chunkType: "sequence",
         repeats: "non-sequential-repeats",
         cards: 20,
-        apreggiateChords: false
+        apreggiateChords: "none"
     },
     commands: {
         giveUp: scientificNote("Ab", 7),

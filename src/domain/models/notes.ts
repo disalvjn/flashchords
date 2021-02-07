@@ -1,4 +1,4 @@
-import { Frequency } from "tone";
+import { Frequency, Midi,  } from "tone";
 import { mapcat } from "../util/util";
 
 export type PitchClass = "A" | "Bb" | "B" | "C" | "Db" | "D" | "Eb" | "E" | "F" | "F#" | "G" | "Ab";
@@ -46,6 +46,10 @@ export function NoteToMidi(note: Note): MidiNote {
     return note.kind == "midi" ? note.midi
         : note.kind == "scientific" ? Frequency(note.class + note.octave.toString()).toMidi()
         : offsetFromRoot(note.solfege.solfege) + 12 * note.solfege.octaveOffset + NoteToMidi(note.tonic);
+}
+
+export function noteToHumanReadable(note: Note): string {
+    return Frequency(NoteToMidi(note), "midi").toNote();
 }
 
 export type NoteComparison = "greater" | "equal" | "lesser"

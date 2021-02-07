@@ -5,6 +5,9 @@
       <v-row v-if="this.practiceState.giveUp">
         <v-col><h2>{{ currentCardDescription }}</h2></v-col>
       </v-row>
+      <v-row v-if="this.practiceState.giveUp">
+        <v-col><h2>{{ currentCard.humanReadableNotes }}</h2></v-col>
+      </v-row>
       <v-row v-if="this.selectedFlashcardIds.length == 0">
         <v-col class="md-12"><h2>No Flashcards Selected</h2></v-col>
       </v-row>
