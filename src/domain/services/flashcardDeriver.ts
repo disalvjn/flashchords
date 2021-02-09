@@ -12,7 +12,7 @@ export function derive(options: DerivationOptions, flashcards: PlatonicFlashcard
             (options.chunkSize <= 1 && !options.apreggiateChords)
             ? transposed.slice(0, Math.min(options.cards, transposed.length))
 
-            : options.chunkType == "sequence" || options.apreggiateChords
+            : options.chunkType == "sequence" || options.apreggiateChords != "none"
             ? doTimes(() => createSequence(transposed, options.chunkSize, options.repeats), options.cards)
 
             // polychord
